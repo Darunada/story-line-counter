@@ -1,8 +1,21 @@
 [package]
-name = "git-parser"
-version = "0.1.0"
-authors = ["Lea Fairbanks <lfairbanks@mastercontrol.com>"]
+
+## Rust configuration
 edition = "2018"
+publish = false # never publish this utility
+
+## Project Definition
+name = "story-line-counter"
+version = "0.1.0"
+
+## Project Metadata
+keywords = ["mastercontrol", "git", "version1"]
+categories = ["command-line-utilities"]
+authors = ["Lea Fairbanks <lfairbanks@mastercontrol.com>"]
+
+## Repository information
+repository = "https://github.com/leamc/story-line-counter"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
