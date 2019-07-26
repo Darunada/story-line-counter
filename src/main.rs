@@ -1,23 +1,33 @@
-use git2::{Repository, Revwalk, Oid};
+use git2::{Repository, Revwalk, Oid, BranchType, Branch, Commit, Sort, DiffStats};
 
 fn main() {
-    let repository = get_repository(".");
-    let revwalk = get_revwalk(&repository, "master");
-    for commit in revwalk {
-        let commit_id = match commit {
-            Ok(id) => {
-                println!("Looking at commit {}.", id);
-                id
+    let repository = get_repository("../../mastercontrol/");
+
+    let branch = get_branch(&repository, "master", BranchType::Local);
+    let head = match branch.into_reference().peel_to_commit() {
+        Ok(commit) => commit,
+        Err(error) => {
+            println!("Unable to get commit for branch reference. Error: {}", error.to_string());
+            panic!();
+        }
+    };
+
+    let mut revwalk = repository.revwalk().unwrap();
+    revwalk.push(head.id());
+    revwalk.set_sorting(Sort::NONE);
+
+    for commit in revwalk.into_iter() {
+        match commit {
+            Ok(oid) => {
+                let commit = find_commit(&repository, &oid);
+                parse_commit(&commit);
             },
-            Err(error) => {
-                println!("Skipping commit during revwalk. Error: {}", error.to_string());
-                continue;
+            Err(err) => {
+                println!("Walking error: {}", err.to_string());
+                panic!();
             }
-        };
-
-        parse_commit(commit_id);
+        }
     }
-
 }
 
 fn get_repository(path: &str) -> Repository {
@@ -30,22 +40,27 @@ fn get_repository(path: &str) -> Repository {
     }
 }
 
-fn get_revwalk<'a>(repository: &'a Repository, rev: &str) -> Revwalk<'a> {
-    match repository.revwalk() {
-        Ok(mut the_revwalk) => {
-            the_revwalk.reset();
-            match the_revwalk.push_ref(rev) {
-                Ok(_) => {},
-                Err(error) => println!("Problem pushing rev {} into revwalk.  Error: {}", rev, error.to_string()),
-            };
-            the_revwalk
-        },
+fn get_branch<'repo>(repository: &'repo Repository, branch: &str, branch_type: BranchType) -> Branch<'repo> {
+    match repository.find_branch(branch, branch_type) {
+        Ok(branch) => branch,
         Err(error) => {
-            println!("Unable to open revision: {}.  Error: {}", rev, error.to_string());
+            println!("Unable to get branch for reference '{}'. Error: {}", branch, error.to_string());
             panic!();
         }
     }
 }
 
-fn parse_commit(_oid: Oid) {
+fn find_commit<'repo>(repository: &'repo Repository, oid: &Oid) -> Commit<'repo> {
+    match repository.find_commit(*oid) {
+        Ok(commit) => commit,
+        Err(error) => {
+            println!("Oh no! {}", oid.to_string());
+            panic!();
+        }
+    }
+}
+
+fn parse_commit(commit: &Commit) {
+    // do stuff with the commit
+    println!("{}", commit.summary().unwrap().to_string());
 }
