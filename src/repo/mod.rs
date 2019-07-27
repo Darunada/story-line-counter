@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::string::ToString;
+use regex::Regex;
 
 use git2::{Branch, BranchType, Commit, Diff, DiffOptions, Error, Oid, Repository, Sort};
 
@@ -13,6 +14,25 @@ struct CommitPair<'repo> {
     first: Commit<'repo>,
     second: Commit<'repo>,
     diff: Diff<'repo>
+}
+
+
+fn get_story_numbers(summary: &str) -> Result<Vec<String>, Error> {
+
+    // matches 's-10345', 's 10345', 'd-10345', 'd 10345', 'S-10345', 'S 10345',
+    // 'D-10345', 'D 10345', 's- 10345', 'S -10345', 'd  - 10345', 'D -  10345'
+    let regex = Regex::new(r"([sdSD])\s*-?\s*(\d{5})").unwrap();
+
+    let mut story_numbers = Vec::new();
+
+    for cap in regex.captures_iter(summary) {
+        let story_type = &cap[0];
+        let story_number = &cap[1];
+        story_numbers.push(format!("{}-{}", story_type.to_uppercase(), story_number));
+    }
+
+    Ok(story_numbers)
+
 }
 
 // Loads a repo, parses the tree, and builds a map of story numbers -> diff
@@ -86,9 +106,9 @@ fn parse_commit_pair(diff: &CommitPair) -> Option<DiffResult> {
     let first_summary = first.summary().unwrap().to_string();
     let second_summary = second.summary().unwrap().to_string();
 
-    let story_number = match get_story_number(&second_summary) {
+    let story_number = match get_story_numbers(&second_summary) {
         Ok(story_number) => story_number,
-        Err(_) => "orphan".to_string()
+        Err(_) => vec!["orphan".to_string()]
     };
 
     let diff_stats = diff.stats().unwrap();
@@ -97,11 +117,6 @@ fn parse_commit_pair(diff: &CommitPair) -> Option<DiffResult> {
     let deletions = diff_stats.deletions();
 
     Some(DiffResult { story_number, first_summary, second_summary, files_changed, insertions, deletions })
-}
-
-fn get_story_number(summary: &str) -> Result<String, Error> {
-    // TODO: story parsing logic.  s-10292, d-12312, s 11233, d 12312
-    Ok(summary.to_string())
 }
 
 fn calculate_diff_totals(repository: &Repository, head: Commit) -> HashMap<String, DiffTotal> {
@@ -149,29 +164,31 @@ fn calculate_diff_totals(repository: &Repository, head: Commit) -> HashMap<Strin
 
     }).for_each(|diff_result| {
 
-        let story_number = &diff_result.story_number;
-        let diff_total = diff_totals_sum.get(story_number);
+        for story_number in diff_result.story_number.iter() {
 
-        if diff_total.is_some() {
-            let diff_total = diff_total.unwrap();
-            let new_total = DiffTotal {
-                story_number: (&diff_total.story_number).to_string(),
-                files_changed: &diff_total.files_changed + diff_result.insertions,
-                insertions: diff_total.insertions + diff_result.deletions,
-                deletions: diff_total.deletions + diff_result.files_changed,
-                total_diff_results: diff_total.total_diff_results + 1
-            };
-            diff_totals_sum.insert(story_number.to_string(), new_total);
-        } else {
-            let new_total = DiffTotal {
-                story_number: story_number.to_string(),
-                files_changed: diff_result.files_changed,
-                insertions: diff_result.insertions,
-                deletions: diff_result.deletions,
-                total_diff_results: 1
-            };
-            diff_totals_sum.insert(story_number.to_string(), new_total);
-        }
+            let diff_total = diff_totals_sum.get(story_number);
+
+            if diff_total.is_some() {
+                let diff_total = diff_total.unwrap();
+                let new_total = DiffTotal {
+                    story_number: (&diff_total.story_number).to_string(),
+                    files_changed: &diff_total.files_changed + diff_result.insertions,
+                    insertions: diff_total.insertions + diff_result.deletions,
+                    deletions: diff_total.deletions + diff_result.files_changed,
+                    total_diff_results: diff_total.total_diff_results + 1
+                };
+                diff_totals_sum.insert(story_number.to_string(), new_total);
+            } else {
+                let new_total = DiffTotal {
+                    story_number: story_number.to_string(),
+                    files_changed: diff_result.files_changed,
+                    insertions: diff_result.insertions,
+                    deletions: diff_result.deletions,
+                    total_diff_results: 1
+                };
+                diff_totals_sum.insert(story_number.to_string(), new_total);
+            }
+        };
     });
 
     diff_totals_sum

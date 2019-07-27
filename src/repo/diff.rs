@@ -2,7 +2,7 @@ use std::fmt;
 use std::fmt::Formatter;
 
 pub struct DiffResult {
-    pub story_number: String,
+    pub story_number: Vec<String>,
     pub first_summary: String,
     pub second_summary: String,
     pub files_changed: usize,
@@ -14,7 +14,7 @@ impl fmt::Display for DiffResult {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f,
                "{} :: ({} files, ∑({},|-{}|) = {}) :: {} -> {}",
-               self.story_number,
+               self.story_number.join(", "),
                self.files_changed,
                self.insertions,
                self.deletions,
