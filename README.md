@@ -15,4 +15,7 @@ This utility is built in Rust.  Is this your first time?
 
 Usage
 --------------------------------------
-This is a work in progress, more to come!
+
+```
+$ story-line-counter [--branch=\<branch\>] [<repopath>] 
+```

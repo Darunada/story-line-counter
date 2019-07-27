@@ -1,0 +1,28 @@
+name: story-line-counter
+version: "1.0"
+author: Lea Fairbanks. <lfairbanks@mastercontrol.com>
+about: This utility analyzes a git repo's commit messages for Version1 story numbers and gets the total number of changed lines associated with a story.
+
+args:
+  - branch:
+      short: b
+      long: branch
+      value_name: branch
+      help: "The branch name to scan. Default: master"
+      takes_value: true
+  - matcher:
+      short: m
+      long: matcher
+      help: "The issue tracker counting schema to use. Default: v1"
+      possible_values: [ v1, jira ]
+      takes_value: true
+
+  - filepath:
+      help: "The path to the git repo to scan. Default: ."
+      required: false
+      index: 1
+
+  - verbose:
+      short: v
+      help: "Enable verbose output"
+      required: false

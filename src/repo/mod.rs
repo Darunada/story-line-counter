@@ -17,11 +17,17 @@ struct CommitPair<'repo> {
 }
 
 
-fn get_story_numbers(summary: &str) -> Result<Vec<String>, Error> {
+fn get_story_numbers(summary: &str, matcher: &str) -> Result<Vec<String>, Error> {
 
-    // matches 's-10345', 's 10345', 'd-10345', 'd 10345', 'S-10345', 'S 10345',
-    // 'D-10345', 'D 10345', 's- 10345', 'S -10345', 'd  - 10345', 'D -  10345'
-    let regex = Regex::new(r"([sdSD])[\s\-]*(\d{5})").unwrap();
+
+    let regex = match matcher {
+        // matches 'SO-123', 'VEN-444'
+        "jira" => Regex::new(r"([A-Za-z]+)[\s\-]*(\d+)").unwrap(),
+
+        // matches 's-10345', 's 10345', 'd-10345', 'd 10345', 'S-10345', 'S 10345',
+        // 'D-10345', 'D 10345', 's- 10345', 'S -10345', 'd  - 10345', 'D -  10345'
+        _ => Regex::new(r"([sdSD])[\s\-]*(\d{5})").unwrap()
+    };
 
     let mut story_numbers = Vec::new();
 
@@ -37,19 +43,41 @@ fn get_story_numbers(summary: &str) -> Result<Vec<String>, Error> {
 }
 
 // Loads a repo, parses the tree, and builds a map of story numbers -> diff
-pub fn parse_repo(repo_path: &str, branch: &str) -> HashMap<String, DiffTotal> {
-    let repository = get_repository(repo_path).unwrap();
-    let branch = get_branch(&repository, branch, BranchType::Local).unwrap();
-    let head = match branch.into_reference().peel_to_commit() {
-        Ok(commit) => Some(commit),
+pub fn parse_repo(repo_path: &str, branch: &str, matcher: &str) -> HashMap<String, DiffTotal> {
+    let repository = get_repository(repo_path).unwrap_or_else(|| {
+        eprintln!("Unable to find repository at {}", repo_path);
+        panic!()
+    });
+
+    println!("Found repository at {}", repository.path().to_str().unwrap());
+    println!("Checking for branch {}", branch);
+
+    let branch_ = get_branch(&repository, branch, BranchType::Local).unwrap_or_else(|| {
+        eprintln!("Unable to find branch {} in repo.  Does it exist?", branch);
+        panic!()
+    });
+
+    println!("Found branch {}", branch_.name().unwrap_or_else(|error| {
+        eprintln!("There was a problem fetching branch {} in repo.  Error: {}", branch, error.to_string());
+        panic!()
+    }).unwrap_or_else(|| {
+        eprintln!("Unable to find branch {} in repo.  Does it exist?  Error: ", branch);
+        panic!()
+    }));
+
+
+    let head = match branch_.into_reference().peel_to_commit() {
+        Ok(commit) => commit,
         Err(error) => {
-            println!("Unable to get commit for branch reference. Error: {}", error);
-            None
+            eprintln!("There was a problem fetching the head of branch {}. Error: {}", branch, error);
+            panic!();
         }
-    }.unwrap();
+    };
 
 
-    calculate_diff_totals(&repository, head)
+    println!("Got branch head {}.  Traversing...", head.id());
+
+    calculate_diff_totals(&repository, head, matcher)
 }
 
 fn get_commit_pair(repository: &Repository, oid_pair: OidPair) -> Option<CommitPair> {
@@ -100,14 +128,14 @@ fn get_commit<'repo>(repository: &'repo Repository, oid: &Oid) -> Option<Commit<
     }
 }
 
-fn parse_commit_pair(diff: &CommitPair) -> Option<DiffResult> {
+fn parse_commit_pair(diff: &CommitPair, matcher: &str) -> Option<DiffResult> {
     let CommitPair { first, second, diff } = diff;
 
 
     let first_summary = first.summary().unwrap().to_string();
     let second_summary = second.summary().unwrap().to_string();
 
-    let story_number = match get_story_numbers(&second_summary) {
+    let story_number = match get_story_numbers(&second_summary, matcher) {
         Ok(story_number) => story_number,
         Err(_) => vec!["orphan".to_string()]
     };
@@ -120,7 +148,7 @@ fn parse_commit_pair(diff: &CommitPair) -> Option<DiffResult> {
     Some(DiffResult { story_number, first_summary, second_summary, files_changed, insertions, deletions })
 }
 
-fn calculate_diff_totals(repository: &Repository, head: Commit) -> HashMap<String, DiffTotal> {
+fn calculate_diff_totals(repository: &Repository, head: Commit, matcher: &str) -> HashMap<String, DiffTotal> {
 
     let mut first_rev_collection = repository.revwalk().unwrap();
     first_rev_collection.set_sorting(Sort::NONE);
@@ -161,10 +189,11 @@ fn calculate_diff_totals(repository: &Repository, head: Commit) -> HashMap<Strin
 
     }).filter_map(|commit_pair| {
 
-        parse_commit_pair(&commit_pair)
+        parse_commit_pair(&commit_pair, matcher)
 
     }).for_each(|diff_result| {
 
+//        println!("{}", diff_result.to_string());
         for story_number in diff_result.story_number.iter() {
 
             let diff_total = diff_totals_sum.get(story_number);
@@ -178,7 +207,10 @@ fn calculate_diff_totals(repository: &Repository, head: Commit) -> HashMap<Strin
                     deletions: diff_total.deletions + diff_result.files_changed,
                     total_diff_results: diff_total.total_diff_results + 1
                 };
+
+//                println!("{}", new_total.to_string());
                 diff_totals_sum.insert(story_number.to_string(), new_total);
+
             } else {
                 let new_total = DiffTotal {
                     story_number: story_number.to_string(),
@@ -187,6 +219,8 @@ fn calculate_diff_totals(repository: &Repository, head: Commit) -> HashMap<Strin
                     deletions: diff_result.deletions,
                     total_diff_results: 1
                 };
+
+//                println!("{}", new_total.to_string());
                 diff_totals_sum.insert(story_number.to_string(), new_total);
             }
         };
