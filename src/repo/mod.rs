@@ -21,13 +21,14 @@ fn get_story_numbers(summary: &str) -> Result<Vec<String>, Error> {
 
     // matches 's-10345', 's 10345', 'd-10345', 'd 10345', 'S-10345', 'S 10345',
     // 'D-10345', 'D 10345', 's- 10345', 'S -10345', 'd  - 10345', 'D -  10345'
-    let regex = Regex::new(r"([sdSD])\s*-?\s*(\d{5})").unwrap();
+    let regex = Regex::new(r"([sdSD])[\s\-]*(\d{5})").unwrap();
 
     let mut story_numbers = Vec::new();
 
     for cap in regex.captures_iter(summary) {
-        let story_type = &cap[0];
-        let story_number = &cap[1];
+        // 0 refers to the entire match
+        let story_type = &cap[1];
+        let story_number = &cap[2];
         story_numbers.push(format!("{}-{}", story_type.to_uppercase(), story_number));
     }
 
