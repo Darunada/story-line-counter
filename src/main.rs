@@ -15,19 +15,19 @@ fn main() {
     if let Some(requested_branch) = matches.value_of("branch") {
         branch = requested_branch;
     }
-    println!("Using branch '{}'", branch);
+    //println!("Using branch '{}'", branch);
 
     let mut matcher = "v1";
     if let Some(requested_matcher) = matches.value_of("matcher") {
         matcher = requested_matcher;
     }
-    println!("Using pattern matcher '{}'", matcher);
+    //println!("Using pattern matcher '{}'", matcher);
 
     let mut path = ".";
     if let Some(requested_path) = matches.value_of("filepath") {
         path = requested_path;
     }
-    println!("searching path '{}'", path);
+    //println!("searching path '{}'", path);
 
 
     let result = parse_repo(path, branch, matcher);

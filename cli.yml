@@ -1,7 +1,7 @@
 name: story-line-counter
 version: "1.0"
 author: Lea Fairbanks. <lfairbanks@mastercontrol.com>
-about: This utility analyzes a git repo's commit messages for Version1 story numbers and gets the total number of changed lines associated with a story.
+about: This utility analyzes a git repo's commit messages for Version1 or Jira story numbers and gets the total number of changed lines associated with a story.
 
 args:
   - branch:
@@ -22,7 +22,7 @@ args:
       required: false
       index: 1
 
-  - verbose:
-      short: v
-      help: "Enable verbose output"
-      required: false
+#  - verbose:
+#      short: v
+#      help: "Enable verbose output"
+#      required: falsecd ru

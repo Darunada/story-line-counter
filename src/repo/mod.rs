@@ -49,21 +49,21 @@ pub fn parse_repo(repo_path: &str, branch: &str, matcher: &str) -> HashMap<Strin
         panic!()
     });
 
-    println!("Found repository at {}", repository.path().to_str().unwrap());
-    println!("Checking for branch {}", branch);
+//    println!("Found repository at {}", repository.path().to_str().unwrap());
+//    println!("Checking for branch {}", branch);
 
     let branch_ = get_branch(&repository, branch, BranchType::Local).unwrap_or_else(|| {
         eprintln!("Unable to find branch {} in repo.  Does it exist?", branch);
         panic!()
     });
 
-    println!("Found branch {}", branch_.name().unwrap_or_else(|error| {
-        eprintln!("There was a problem fetching branch {} in repo.  Error: {}", branch, error.to_string());
-        panic!()
-    }).unwrap_or_else(|| {
-        eprintln!("Unable to find branch {} in repo.  Does it exist?  Error: ", branch);
-        panic!()
-    }));
+//    println!("Found branch {}", branch_.name().unwrap_or_else(|error| {
+//        eprintln!("There was a problem fetching branch {} in repo.  Error: {}", branch, error.to_string());
+//        panic!()
+//    }).unwrap_or_else(|| {
+//        eprintln!("Unable to find branch {} in repo.  Does it exist?  Error: ", branch);
+//        panic!()
+//    }));
 
 
     let head = match branch_.into_reference().peel_to_commit() {
@@ -75,7 +75,7 @@ pub fn parse_repo(repo_path: &str, branch: &str, matcher: &str) -> HashMap<Strin
     };
 
 
-    println!("Got branch head {}.  Traversing...", head.id());
+    //println!("Got branch head {}.  Traversing...", head.id());
 
     calculate_diff_totals(&repository, head, matcher)
 }
@@ -102,7 +102,7 @@ fn get_repository(path: &str) -> Option<Repository> {
     match Repository::discover(path) {
         Ok(repo) => Some(repo),
         Err(error) => {
-            println!("Unable to find repository: {}.  Error: {}", path, error);
+            eprintln!("Unable to find repository: {}.  Error: {}", path, error);
             None
         }
     }
@@ -112,7 +112,7 @@ fn get_branch<'repo>(repository: &'repo Repository, branch: &str, branch_type: B
     match repository.find_branch(branch, branch_type) {
         Ok(branch) => Some(branch),
         Err(error) => {
-            println!("Unable to get branch for reference '{}'. Error: {}", branch, error);
+            eprintln!("Unable to get branch for reference '{}'. Error: {}", branch, error);
             None
         }
     }
@@ -122,7 +122,7 @@ fn get_commit<'repo>(repository: &'repo Repository, oid: &Oid) -> Option<Commit<
     match repository.find_commit(*oid) {
         Ok(commit) => Some(commit),
         Err(error) => {
-            println!("Unable to find commit for oid '{}'.  Error: {}", oid.to_string(), error);
+            eprintln!("Unable to find commit for oid '{}'.  Error: {}", oid.to_string(), error);
             None
         }
     }
@@ -153,14 +153,14 @@ fn calculate_diff_totals(repository: &Repository, head: Commit, matcher: &str) -
     let mut first_rev_collection = repository.revwalk().unwrap();
     first_rev_collection.set_sorting(Sort::NONE);
     first_rev_collection.push(head.id()).unwrap_or_else(|error | {
-        println!("Unable to push head revision '{}' to rev walker. Error: {}", head.id().to_string(), error);
+        eprintln!("Unable to push head revision '{}' to rev walker. Error: {}", head.id().to_string(), error);
         panic!();
     });
 
     let mut second_rev_collection = repository.revwalk().unwrap();
     second_rev_collection.set_sorting(Sort::NONE);
     second_rev_collection.push(head.id()).unwrap_or_else(|error | {
-        println!("Unable to push head revision '{}' to rev walker. Error: {}", head.id().to_string(), error);
+        eprintln!("Unable to push head revision '{}' to rev walker. Error: {}", head.id().to_string(), error);
         panic!();
     });
 
