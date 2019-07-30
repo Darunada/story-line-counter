@@ -1,6 +1,9 @@
 use std::fmt;
 use std::fmt::Formatter;
+use serde::{Serialize, Deserialize};
+use std::collections::HashMap;
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct DiffResult {
     pub story_number: Vec<String>,
     pub first_summary: String,
@@ -25,6 +28,50 @@ impl fmt::Display for DiffResult {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DiffCollection {
+    pub diffs: Vec<DiffResult>
+}
+
+impl fmt::Display for DiffCollection {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        self.diffs.iter().for_each(|diff_result| {
+            writeln!(f, "{}", diff_result.to_string()).unwrap();
+        });
+
+        Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct StoryPoint {
+    pub story_number: String,
+    pub points: f32
+}
+
+impl fmt::Display for StoryPoint {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        writeln!(f, "{} => {}sp", self.story_number, self.points).unwrap();
+        Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct StoryPointCollection {
+   pub story_points: Vec<StoryPoint>,
+}
+
+impl fmt::Display for StoryPointCollection {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        self.story_points.iter().for_each(|story_point| {
+            writeln!(f, "{}", story_point.to_string()).unwrap();
+        });
+
+        Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct DiffTotal {
     pub story_number: String,
     pub files_changed: usize,
@@ -43,6 +90,21 @@ impl fmt::Display for DiffTotal {
                self.deletions,
                self.insertions + self.deletions,
                self.total_diff_results)?;
+        Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DiffTotalCollection {
+    pub totals: HashMap<String, DiffTotal>
+}
+
+impl fmt::Display for DiffTotalCollection {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        self.totals.iter().for_each(|(total, diff_total)| {
+            writeln!(f, "{} => {}", total, diff_total.to_string()).unwrap();
+        });
+
         Ok(())
     }
 }
