@@ -5,7 +5,39 @@ extern crate clap;
 use clap::App;
 use crate::repo::parse_repo;
 
+use repo::diff::DiffTotalCollection;
+use core::fmt;
+use std::error::Error;
+
 mod repo;
+
+
+#[derive(Debug)]
+enum CliError {
+    Git(git2::Error),
+}
+
+impl From<git2::Error> for CliError {
+    fn from(err: git2::Error) -> CliError {
+        CliError::Git(err)
+    }
+}
+
+impl fmt::Display for CliError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            CliError::Git(ref err) => err.fmt(f),
+        }
+    }
+}
+
+impl Error for CliError {
+    fn description(&self) -> &str {
+        match *self {
+            CliError::Git(ref err) => err.description(),
+        }
+    }
+}
 
 fn main() {
     let yaml = load_yaml!("../cli.yml");
@@ -29,11 +61,17 @@ fn main() {
     }
     //println!("searching path '{}'", path);
 
+    match run(path, branch, matcher) {
+        Ok(diff_total_collection) => {
+            print!("{}", diff_total_collection.to_string());
+        },
+        Err(error) => {
+            eprintln!("{}", error.to_string());
+            panic!();
+        }
+    };
+}
 
-    let result = parse_repo(path, branch, matcher);
-
-    for diff_total in result {
-        let (_, diff_total) = diff_total;
-        println!("{}", diff_total.to_string());
-    }
+fn run(path: &str, branch: &str, matcher: &str) -> Result<DiffTotalCollection, CliError> {
+    parse_repo(path, branch, matcher).map_err(CliError::Git)
 }

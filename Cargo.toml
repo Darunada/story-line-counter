@@ -2,6 +2,7 @@
 
 ## Rust configuration
 edition = "2018"
+target = ["bin"]
 publish = false # never publish this utility
 
 ## Project Definition
@@ -9,7 +10,7 @@ name = "story-line-counter"
 version = "0.1.0"
 
 ## Project Metadata
-keywords = ["mastercontrol", "git", "version1"]
+keywords = ["git", "version1", "jira"]
 categories = ["command-line-utilities"]
 authors = ["Lea Fairbanks <lfairbanks@mastercontrol.com>"]
 
@@ -20,6 +21,7 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-git2 = "0.9.2"
-regex = "1.2.0"
+git2 = "~0.9"
+regex = "~1.2"
+serde = { version = "~1.0", features = ["derive"] }
 clap = {version = "~2.33", features = ["yaml"]}

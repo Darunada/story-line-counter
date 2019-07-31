@@ -1,12 +1,14 @@
 use std::collections::HashMap;
 use std::string::ToString;
 use regex::Regex;
+use git2::{Commit, Diff, DiffOptions, Error, Oid, Repository, Sort, };
 
-use git2::{Branch, BranchType, Commit, Diff, DiffOptions, Error, Oid, Repository, Sort};
+use crate::repo::diff::{DiffResult, DiffTotal, DiffTotalCollection};
+use crate::repo::core::RepoPosition;
+use crate::repo::core::get_commit;
 
-use crate::repo::diff::{DiffResult, DiffTotal};
-
-mod diff;
+pub mod diff;
+mod core;
 
 struct OidPair(Oid, Oid);
 
@@ -18,7 +20,6 @@ struct CommitPair<'repo> {
 
 
 fn get_story_numbers(summary: &str, matcher: &str) -> Result<Vec<String>, Error> {
-
 
     let regex = match matcher {
         // matches 'SO-123', 'VEN-444'
@@ -39,45 +40,14 @@ fn get_story_numbers(summary: &str, matcher: &str) -> Result<Vec<String>, Error>
     }
 
     Ok(story_numbers)
-
 }
 
 // Loads a repo, parses the tree, and builds a map of story numbers -> diff
-pub fn parse_repo(repo_path: &str, branch: &str, matcher: &str) -> HashMap<String, DiffTotal> {
-    let repository = get_repository(repo_path).unwrap_or_else(|| {
-        eprintln!("Unable to find repository at {}", repo_path);
-        panic!()
-    });
-
-//    println!("Found repository at {}", repository.path().to_str().unwrap());
-//    println!("Checking for branch {}", branch);
-
-    let branch_ = get_branch(&repository, branch, BranchType::Local).unwrap_or_else(|| {
-        eprintln!("Unable to find branch {} in repo.  Does it exist?", branch);
-        panic!()
-    });
-
-//    println!("Found branch {}", branch_.name().unwrap_or_else(|error| {
-//        eprintln!("There was a problem fetching branch {} in repo.  Error: {}", branch, error.to_string());
-//        panic!()
-//    }).unwrap_or_else(|| {
-//        eprintln!("Unable to find branch {} in repo.  Does it exist?  Error: ", branch);
-//        panic!()
-//    }));
-
-
-    let head = match branch_.into_reference().peel_to_commit() {
-        Ok(commit) => commit,
-        Err(error) => {
-            eprintln!("There was a problem fetching the head of branch {}. Error: {}", branch, error);
-            panic!();
-        }
-    };
-
-
-    //println!("Got branch head {}.  Traversing...", head.id());
-
-    calculate_diff_totals(&repository, head, matcher)
+pub fn parse_repo(repo_path: &str, branch: &str, matcher: &str) -> Result<DiffTotalCollection, Error> {
+    let repo = core::get_repository(repo_path)?;
+    let repo_start = core::get_repo_head(&repo, branch)?;
+    let diff_totals = calculate_diff_totals(&repo_start, matcher)?;
+    Ok(DiffTotalCollection { totals: diff_totals })
 }
 
 fn get_commit_pair(repository: &Repository, oid_pair: OidPair) -> Option<CommitPair> {
@@ -98,35 +68,6 @@ fn get_commit_pair(repository: &Repository, oid_pair: OidPair) -> Option<CommitP
 }
 
 
-fn get_repository(path: &str) -> Option<Repository> {
-    match Repository::discover(path) {
-        Ok(repo) => Some(repo),
-        Err(error) => {
-            eprintln!("Unable to find repository: {}.  Error: {}", path, error);
-            None
-        }
-    }
-}
-
-fn get_branch<'repo>(repository: &'repo Repository, branch: &str, branch_type: BranchType) -> Option<Branch<'repo>> {
-    match repository.find_branch(branch, branch_type) {
-        Ok(branch) => Some(branch),
-        Err(error) => {
-            eprintln!("Unable to get branch for reference '{}'. Error: {}", branch, error);
-            None
-        }
-    }
-}
-
-fn get_commit<'repo>(repository: &'repo Repository, oid: &Oid) -> Option<Commit<'repo>> {
-    match repository.find_commit(*oid) {
-        Ok(commit) => Some(commit),
-        Err(error) => {
-            eprintln!("Unable to find commit for oid '{}'.  Error: {}", oid.to_string(), error);
-            None
-        }
-    }
-}
 
 fn parse_commit_pair(diff: &CommitPair, matcher: &str) -> Option<DiffResult> {
     let CommitPair { first, second, diff } = diff;
@@ -148,26 +89,20 @@ fn parse_commit_pair(diff: &CommitPair, matcher: &str) -> Option<DiffResult> {
     Some(DiffResult { story_number, first_summary, second_summary, files_changed, insertions, deletions })
 }
 
-fn calculate_diff_totals(repository: &Repository, head: Commit, matcher: &str) -> HashMap<String, DiffTotal> {
+fn calculate_diff_totals(start: &RepoPosition, matcher: &str) -> Result<HashMap<String, DiffTotal>, Error> {
+    let RepoPosition {repository, branch: _, commit} = start;
 
-    let mut first_rev_collection = repository.revwalk().unwrap();
+    let mut first_rev_collection = repository.revwalk()?;
     first_rev_collection.set_sorting(Sort::NONE);
-    first_rev_collection.push(head.id()).unwrap_or_else(|error | {
-        eprintln!("Unable to push head revision '{}' to rev walker. Error: {}", head.id().to_string(), error);
-        panic!();
-    });
+    first_rev_collection.push(commit.id())?;
 
-    let mut second_rev_collection = repository.revwalk().unwrap();
+    let mut second_rev_collection = repository.revwalk()?;
     second_rev_collection.set_sorting(Sort::NONE);
-    second_rev_collection.push(head.id()).unwrap_or_else(|error | {
-        eprintln!("Unable to push head revision '{}' to rev walker. Error: {}", head.id().to_string(), error);
-        panic!();
-    });
+    second_rev_collection.push(commit.id())?;
 
     let mut first_commit_iterator = first_rev_collection.into_iter();
     let second_commit_iterator = second_rev_collection.into_iter();
     first_commit_iterator.next();
-
 
     let mut diff_totals_sum: HashMap<String, DiffTotal> = HashMap::new();
 
@@ -195,37 +130,35 @@ fn calculate_diff_totals(repository: &Repository, head: Commit, matcher: &str) -
 
 //        println!("{}", diff_result.to_string());
         for story_number in diff_result.story_number.iter() {
+            match diff_totals_sum.get(story_number) {
+                Some(diff_total) => {
+                    let new_total = DiffTotal {
+                        story_number: (*(diff_total).story_number).to_string(),
+                        files_changed: diff_total.files_changed + diff_result.insertions,
+                        insertions: diff_total.insertions + diff_result.deletions,
+                        deletions: diff_total.deletions + diff_result.files_changed,
+                        total_diff_results: diff_total.total_diff_results + 1
+                    };
 
-            let diff_total = diff_totals_sum.get(story_number);
+                    //println!("{}", new_total.to_string());
+                    diff_totals_sum.insert(story_number.to_string(), new_total);
+                },
+                None => {
+                    let new_total = DiffTotal {
+                        story_number: story_number.to_string(),
+                        files_changed: diff_result.files_changed,
+                        insertions: diff_result.insertions,
+                        deletions: diff_result.deletions,
+                        total_diff_results: 1
+                    };
 
-            if diff_total.is_some() {
-                let diff_total = diff_total.unwrap();
-                let new_total = DiffTotal {
-                    story_number: (&diff_total.story_number).to_string(),
-                    files_changed: &diff_total.files_changed + diff_result.insertions,
-                    insertions: diff_total.insertions + diff_result.deletions,
-                    deletions: diff_total.deletions + diff_result.files_changed,
-                    total_diff_results: diff_total.total_diff_results + 1
-                };
-
-//                println!("{}", new_total.to_string());
-                diff_totals_sum.insert(story_number.to_string(), new_total);
-
-            } else {
-                let new_total = DiffTotal {
-                    story_number: story_number.to_string(),
-                    files_changed: diff_result.files_changed,
-                    insertions: diff_result.insertions,
-                    deletions: diff_result.deletions,
-                    total_diff_results: 1
-                };
-
-//                println!("{}", new_total.to_string());
-                diff_totals_sum.insert(story_number.to_string(), new_total);
+                    //println!("{}", new_total.to_string());
+                    diff_totals_sum.insert(story_number.to_string(), new_total);
+                }
             }
         };
     });
 
-    diff_totals_sum
+    Ok(diff_totals_sum)
 }
 
