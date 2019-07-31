@@ -25,4 +25,4 @@ args:
 #  - verbose:
 #      short: v
 #      help: "Enable verbose output"
-#      required: falsecd ru
+#      required: false

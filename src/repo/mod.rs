@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::string::ToString;
 use regex::Regex;
-use git2::{Branch, BranchType, Commit, Diff, DiffOptions, Error, Oid, Repository, Sort, ResetType};
+use git2::{Commit, Diff, DiffOptions, Error, Oid, Repository, Sort, };
 
 use crate::repo::diff::{DiffResult, DiffTotal, DiffTotalCollection};
 use crate::repo::core::RepoPosition;
@@ -44,7 +44,8 @@ fn get_story_numbers(summary: &str, matcher: &str) -> Result<Vec<String>, Error>
 
 // Loads a repo, parses the tree, and builds a map of story numbers -> diff
 pub fn parse_repo(repo_path: &str, branch: &str, matcher: &str) -> Result<DiffTotalCollection, Error> {
-    let repo_start = core::get_repo_head(repo_path, branch)?;
+    let repo = core::get_repository(repo_path)?;
+    let repo_start = core::get_repo_head(&repo, branch)?;
     let diff_totals = calculate_diff_totals(&repo_start, matcher)?;
     Ok(DiffTotalCollection { totals: diff_totals })
 }
@@ -89,7 +90,7 @@ fn parse_commit_pair(diff: &CommitPair, matcher: &str) -> Option<DiffResult> {
 }
 
 fn calculate_diff_totals(start: &RepoPosition, matcher: &str) -> Result<HashMap<String, DiffTotal>, Error> {
-    let RepoPosition {repository: repository, branch: branch, commit: commit} = start;
+    let RepoPosition {repository, branch: _, commit} = start;
 
     let mut first_rev_collection = repository.revwalk()?;
     first_rev_collection.set_sorting(Sort::NONE);

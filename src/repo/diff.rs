@@ -101,8 +101,8 @@ pub struct DiffTotalCollection {
 
 impl fmt::Display for DiffTotalCollection {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        self.totals.iter().for_each(|(total, diff_total)| {
-            writeln!(f, "{} => {}", total, diff_total.to_string()).unwrap();
+        self.totals.iter().for_each(|(_, diff_total)| {
+            writeln!(f, "{}", diff_total.to_string()).unwrap();
         });
 
         Ok(())

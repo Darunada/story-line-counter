@@ -2,6 +2,7 @@
 
 ## Rust configuration
 edition = "2018"
+target = ["bin"]
 publish = false # never publish this utility
 
 ## Project Definition
@@ -9,7 +10,7 @@ name = "story-line-counter"
 version = "0.1.0"
 
 ## Project Metadata
-keywords = ["mastercontrol", "git", "version1"]
+keywords = ["git", "version1", "jira"]
 categories = ["command-line-utilities"]
 authors = ["Lea Fairbanks <lfairbanks@mastercontrol.com>"]
 
