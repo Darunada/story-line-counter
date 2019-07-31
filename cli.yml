@@ -4,25 +4,87 @@ author: Lea Fairbanks. <lfairbanks@mastercontrol.com>
 about: This utility analyzes a git repo's commit messages for Version1 or Jira story numbers and gets the total number of changed lines associated with a story.
 
 args:
-  - branch:
-      short: b
-      long: branch
-      value_name: branch
-      help: "The branch name to scan. Default: master"
-      takes_value: true
-  - matcher:
-      short: m
-      long: matcher
-      help: "The issue tracker counting schema to use. Default: v1"
-      possible_values: [ v1, jira ]
-      takes_value: true
 
-  - filepath:
-      help: "The path to the git repo to scan. Default: ."
-      required: false
-      index: 1
+subcommands:
 
-#  - verbose:
-#      short: v
-#      help: "Enable verbose output"
-#      required: false
+  ##
+  ## Collect command
+  ##
+  - collect:
+      about: "Parses a git repo and outputs DiffCollection objects."
+      args:
+        - branch:
+            help: "The branch name to scan."
+            default_value: master
+            required: false
+            long: branch
+            short: b
+
+        - filepath:
+            help: "The path to the git repo to scan."
+            default_value: .
+            required: false
+            index: 1
+
+        - matcher:
+            help: "The issue tracker counting schema to use."
+            possible_values: [ v1, jira ]
+            default_value: v1
+            long: matcher
+            short: m
+
+        - points:
+            help: "The path to a points file to merge."
+            required: false
+            long: points
+            short: p
+
+
+    ##
+    ## Total command
+    ##
+  - total:
+      about: "Loads a DiffCollection file and outputs a DiffTotalCollection"
+      args:
+        - in:
+            value_name: in
+            help: "A space separated list of file paths of DiffCollections to load"
+            multiple: true
+
+        - points:
+            help: "The path to a points file to merge."
+            required: false
+            long: points
+            short: p
+
+  ##
+  ## Run command
+  ##
+  - run:
+      about: "Opens a repo and outputs a DiffTotalCollection"
+      args:
+        - branch:
+            help: "The branch name to scan."
+            default_value: master
+            required: false
+            long: branch
+            short: b
+
+        - filepath:
+            help: "The path to the git repo to scan."
+            default_value: .
+            required: false
+            index: 1
+
+        - matcher:
+            help: "The issue tracker counting schema to use."
+            possible_values: [ v1, jira ]
+            default_value: v1
+            long: matcher
+            short: m
+
+        - points:
+            help: "The path to a points file to merge."
+            required: false
+            long: points
+            short: p

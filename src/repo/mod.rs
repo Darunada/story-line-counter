@@ -86,7 +86,7 @@ fn parse_commit_pair(diff: &CommitPair, matcher: &str) -> Option<DiffResult> {
     let insertions = diff_stats.insertions();
     let deletions = diff_stats.deletions();
 
-    Some(DiffResult { story_number, first_summary, second_summary, files_changed, insertions, deletions })
+    Some(DiffResult { story_number, points: "0".to_string(), first_summary, second_summary, files_changed, insertions, deletions })
 }
 
 fn calculate_diff_totals(start: &RepoPosition, matcher: &str) -> Result<HashMap<String, DiffTotal>, Error> {
@@ -134,6 +134,7 @@ fn calculate_diff_totals(start: &RepoPosition, matcher: &str) -> Result<HashMap<
                 Some(diff_total) => {
                     let new_total = DiffTotal {
                         story_number: (*(diff_total).story_number).to_string(),
+                        points: "0".to_string(),
                         files_changed: diff_total.files_changed + diff_result.insertions,
                         insertions: diff_total.insertions + diff_result.deletions,
                         deletions: diff_total.deletions + diff_result.files_changed,
@@ -146,6 +147,7 @@ fn calculate_diff_totals(start: &RepoPosition, matcher: &str) -> Result<HashMap<
                 None => {
                     let new_total = DiffTotal {
                         story_number: story_number.to_string(),
+                        points: "0".to_string(),
                         files_changed: diff_result.files_changed,
                         insertions: diff_result.insertions,
                         deletions: diff_result.deletions,

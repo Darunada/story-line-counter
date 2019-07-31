@@ -2,7 +2,7 @@
 #[macro_use]
 extern crate clap;
 
-use clap::App;
+use clap::{App, ArgMatches};
 use crate::repo::parse_repo;
 
 use repo::diff::DiffTotalCollection;
@@ -39,38 +39,70 @@ impl Error for CliError {
     }
 }
 
+
+struct RunArgs<'a> {
+    branch: &'a str,
+    matcher: &'a str,
+    path: &'a str,
+    points_path: Option<&'a str>
+}
+
+
 fn main() {
     let yaml = load_yaml!("../cli.yml");
     let matches = App::from_yaml(yaml).get_matches();
 
+    match matches.subcommand_name() {
+        Some("collect") => unimplemented!(),
+        Some("total") => unimplemented!(),
+        Some("run") | None | _ => {
+            run_command(&parse_run_args(&matches))
+        }
+    }.unwrap();
+}
+
+fn parse_run_args<'a>(matches: &'a ArgMatches) -> RunArgs<'a> {
     let mut branch = "master";
     if let Some(requested_branch) = matches.value_of("branch") {
         branch = requested_branch;
     }
-    //println!("Using branch '{}'", branch);
 
     let mut matcher = "v1";
     if let Some(requested_matcher) = matches.value_of("matcher") {
         matcher = requested_matcher;
     }
-    //println!("Using pattern matcher '{}'", matcher);
 
     let mut path = ".";
     if let Some(requested_path) = matches.value_of("filepath") {
         path = requested_path;
     }
-    //println!("searching path '{}'", path);
 
-    match run(path, branch, matcher) {
+    let points_path = matches.value_of("points");
+
+    RunArgs {
+        branch,
+        matcher,
+        path,
+        points_path
+    }
+}
+
+fn run_command(args: &RunArgs) -> Result<(), CliError> {
+
+    let RunArgs { branch, matcher, path, points_path } = args;
+    let diff_total_collection = run(path, branch, matcher);
+
+    // TODO: set points values with with points file
+
+    match diff_total_collection {
         Ok(diff_total_collection) => {
             print!("{}", diff_total_collection.to_string());
+            Ok(())
         },
-        Err(error) => {
-            eprintln!("{}", error.to_string());
-            panic!();
-        }
-    };
+        Err(error) => Err(error)
+    }
 }
+
 
 fn run(path: &str, branch: &str, matcher: &str) -> Result<DiffTotalCollection, CliError> {
     parse_repo(path, branch, matcher).map_err(CliError::Git)

@@ -6,6 +6,7 @@ use std::collections::HashMap;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DiffResult {
     pub story_number: Vec<String>,
+    pub points: String,
     pub first_summary: String,
     pub second_summary: String,
     pub files_changed: usize,
@@ -16,8 +17,9 @@ pub struct DiffResult {
 impl fmt::Display for DiffResult {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f,
-               "{} :: ({} files, ∑({},|-{}|) = {}) :: {} -> {}",
+               "{} ({}) :: ({} files, ∑({},|-{}|) = {}) :: {} -> {}",
                self.story_number.join(", "),
+               self.points,
                self.files_changed,
                self.insertions,
                self.deletions,
@@ -46,7 +48,7 @@ impl fmt::Display for DiffCollection {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct StoryPoint {
     pub story_number: String,
-    pub points: f32
+    pub points: String
 }
 
 impl fmt::Display for StoryPoint {
@@ -74,6 +76,7 @@ impl fmt::Display for StoryPointCollection {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DiffTotal {
     pub story_number: String,
+    pub points: String,
     pub files_changed: usize,
     pub insertions: usize,
     pub deletions: usize,
@@ -83,8 +86,9 @@ pub struct DiffTotal {
 impl fmt::Display for DiffTotal {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f,
-               "{} :: ({} files, ∑({},|-{}|) = {}) in {} commits",
+               "{} ({}) :: ({} files, ∑({},|-{}|) = {}) in {} commits",
                self.story_number,
+               self.points,
                self.files_changed,
                self.insertions,
                self.deletions,
