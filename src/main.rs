@@ -39,11 +39,15 @@ impl Error for CliError {
     }
 }
 
-
 struct RunArgs<'a> {
     branch: &'a str,
     matcher: &'a str,
     path: &'a str,
+    points_path: Option<&'a str>
+}
+
+struct TotalArgs<'a> {
+    path: Option<&'a str>,
     points_path: Option<&'a str>
 }
 
@@ -54,7 +58,9 @@ fn main() {
 
     match matches.subcommand_name() {
         Some("collect") => unimplemented!(),
-        Some("total") => unimplemented!(),
+        Some("total") => {
+            total_command(&parse_total_args(&matches))
+        },
         Some("run") | None | _ => {
             run_command(&parse_run_args(&matches))
         }
@@ -103,7 +109,34 @@ fn run_command(args: &RunArgs) -> Result<(), CliError> {
     }
 }
 
-
 fn run(path: &str, branch: &str, matcher: &str) -> Result<DiffTotalCollection, CliError> {
     parse_repo(path, branch, matcher).map_err(CliError::Git)
+}
+
+
+fn parse_total_args<'a>(matches: &'a ArgMatches) -> TotalArgs<'a> {
+    let path = matches.value_of("in");
+    let points_path = matches.value_of("points");
+
+    TotalArgs {
+        path,
+        points_path
+    }
+}
+
+fn total_command(args: &TotalArgs) -> Result<(), CliError> {
+    let TotalArgs { path, points_path } = args;
+
+    // TODO: get file streams from DiffCollections paths/s.
+
+    // TODO: total all the diff collections into a DiffTotalCollection
+    let diff_total_collection = total()?;
+
+    // TODO: set points values with with points file
+
+    Ok(())
+}
+
+fn total() -> Result<DiffTotalCollection, CliError> {
+    unimplemented!();
 }
