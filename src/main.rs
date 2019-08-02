@@ -2,15 +2,15 @@
 #[macro_use]
 extern crate clap;
 
-use crate::repo::{collect_repo, calculate_diff_totals};
+use crate::repo::{run, collect, total};
 
 use crate::args_parser::{parse_total_args, CollectArgs, TotalArgs, parse_collect_args};
-use crate::repo::diff::{DiffCollection, DiffTotalCollection, DiffResult};
+use crate::repo::diff::{DiffCollection, DiffResult};
 use clap::{Arg, SubCommand, App};
 use std::path::Path;
 use crate::errors::{CliError, InputError};
 use std::fs::File;
-use std::io::{Read, BufReader};
+use std::io::{BufReader};
 
 mod repo;
 mod args_parser;
@@ -169,19 +169,4 @@ fn run_command(args: &CollectArgs) -> Result<(), CliError> {
 
     print!("{}", diff_total_collection.to_string());
     Ok(())
-}
-
-fn total(diff_collection: DiffCollection) -> Result<DiffTotalCollection, CliError> {
-    let totals = calculate_diff_totals(&diff_collection).map_err(CliError::Git)?;
-    Ok( DiffTotalCollection { totals } )
-}
-
-fn collect(path: &str, branch: &str, matcher: &str) -> Result<DiffCollection, CliError> {
-    collect_repo(path, branch, matcher).map_err(CliError::Git)
-}
-
-fn run(path: &str, branch: &str, matcher: &str) -> Result<DiffTotalCollection, CliError> {
-    let collection = collect_repo(path, branch, matcher).map_err(CliError::Git)?;
-    let diff_collection = total(collection)?;
-    Ok( diff_collection )
 }

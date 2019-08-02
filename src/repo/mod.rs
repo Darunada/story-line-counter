@@ -3,9 +3,10 @@ use std::string::ToString;
 use regex::Regex;
 use git2::{Commit, Diff, DiffOptions, Error, Oid, Repository, Sort};
 
-use crate::repo::diff::{DiffResult, DiffTotal, DiffCollection};
+use crate::repo::diff::{DiffResult, DiffTotal, DiffCollection, DiffTotalCollection};
 use crate::repo::core::RepoPosition;
 use crate::repo::core::get_commit;
+use crate::errors::CliError;
 
 pub mod diff;
 mod core;
@@ -17,6 +18,23 @@ struct CommitPair<'repo> {
     second: Commit<'repo>,
     diff: Diff<'repo>,
 }
+
+
+pub fn total(diff_collection: DiffCollection) -> Result<DiffTotalCollection, CliError> {
+    let totals = calculate_diff_totals(&diff_collection).map_err(CliError::Git)?;
+    Ok( DiffTotalCollection { totals } )
+}
+
+pub fn collect(path: &str, branch: &str, matcher: &str) -> Result<DiffCollection, CliError> {
+    collect_repo(path, branch, matcher).map_err(CliError::Git)
+}
+
+pub fn run(path: &str, branch: &str, matcher: &str) -> Result<DiffTotalCollection, CliError> {
+    let collection = collect_repo(path, branch, matcher).map_err(CliError::Git)?;
+    let diff_collection = total(collection)?;
+    Ok( diff_collection )
+}
+
 
 
 fn get_story_numbers(summary: &str, matcher: &str) -> Result<Vec<String>, Error> {
@@ -42,7 +60,7 @@ fn get_story_numbers(summary: &str, matcher: &str) -> Result<Vec<String>, Error>
 }
 
 // Loads a repo, parses the tree, and builds a map of story numbers -> diff
-pub fn collect_repo(repo_path: &str, branch: &str, matcher: &str) -> Result<DiffCollection, Error> {
+fn collect_repo(repo_path: &str, branch: &str, matcher: &str) -> Result<DiffCollection, Error> {
     let repo = core::get_repository(repo_path)?;
     let repo_start = core::get_repo_head(&repo, branch)?;
     let diff_collection = collect_diffs(&repo_start, matcher)?;
@@ -63,8 +81,6 @@ fn collect_diffs(start: &RepoPosition, matcher: &str) -> Result<DiffCollection, 
     let mut first_commit_iterator = first_rev_collection.into_iter();
     let second_commit_iterator = second_rev_collection.into_iter();
     first_commit_iterator.next();
-
-    let diff_totals_sum: HashMap<String, DiffTotal> = HashMap::new();
 
     let result: Result<Vec<DiffResult>, Error> = first_commit_iterator
         .zip(second_commit_iterator)
@@ -131,7 +147,7 @@ fn parse_commit_pair(diff: &CommitPair, matcher: &str) -> Result<DiffResult, Err
     })
 }
 
-pub fn calculate_diff_totals(diff_collection: &DiffCollection) -> Result<HashMap<String, DiffTotal>, Error> {
+fn calculate_diff_totals(diff_collection: &DiffCollection) -> Result<HashMap<String, DiffTotal>, Error> {
     let mut diff_totals_sum: HashMap<String, DiffTotal> = HashMap::new();
 
     diff_collection.diffs.iter().for_each(|diff_result| {
