@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::string::ToString;
 use regex::Regex;
-use git2::{Commit, Diff, DiffOptions, Error, Oid, Repository, Sort, };
+use git2::{Commit, Diff, DiffOptions, Error, Oid, Repository, Sort};
 
-use crate::repo::diff::{DiffResult, DiffTotal, DiffTotalCollection};
+use crate::repo::diff::{DiffResult, DiffTotal, DiffTotalCollection, DiffCollection};
 use crate::repo::core::RepoPosition;
 use crate::repo::core::get_commit;
 
@@ -15,12 +15,11 @@ struct OidPair(Oid, Oid);
 struct CommitPair<'repo> {
     first: Commit<'repo>,
     second: Commit<'repo>,
-    diff: Diff<'repo>
+    diff: Diff<'repo>,
 }
 
 
 fn get_story_numbers(summary: &str, matcher: &str) -> Result<Vec<String>, Error> {
-
     let regex = match matcher {
         // matches 'SO-123', 'VEN-444'
         "jira" => Regex::new(r"([A-Za-z]+)[\s\-]*(\d+)").unwrap(),
@@ -43,54 +42,15 @@ fn get_story_numbers(summary: &str, matcher: &str) -> Result<Vec<String>, Error>
 }
 
 // Loads a repo, parses the tree, and builds a map of story numbers -> diff
-pub fn parse_repo(repo_path: &str, branch: &str, matcher: &str) -> Result<DiffTotalCollection, Error> {
+pub fn collect_repo(repo_path: &str, branch: &str, matcher: &str) -> Result<DiffCollection, Error> {
     let repo = core::get_repository(repo_path)?;
     let repo_start = core::get_repo_head(&repo, branch)?;
-    let diff_totals = calculate_diff_totals(&repo_start, matcher)?;
-    Ok(DiffTotalCollection { totals: diff_totals })
+    let diff_collection = collect_diffs(&repo_start, matcher)?;
+    Ok(diff_collection)
 }
 
-fn get_commit_pair(repository: &Repository, oid_pair: OidPair) -> Option<CommitPair> {
-    let mut diff_options = DiffOptions::new();
-
-    let OidPair(first_oid, second_oid) = oid_pair;
-    let first_commit = get_commit(&repository, &first_oid).unwrap();
-    let second_commit= get_commit(&repository, &second_oid).unwrap();
-
-    let diff = repository.diff_tree_to_tree(Some(&first_commit.tree().unwrap()), Some(&second_commit.tree().unwrap()), Some(&mut diff_options)).unwrap();
-
-
-    Some(CommitPair {
-        first: first_commit,
-        second: second_commit,
-        diff
-    })
-}
-
-
-
-fn parse_commit_pair(diff: &CommitPair, matcher: &str) -> Option<DiffResult> {
-    let CommitPair { first, second, diff } = diff;
-
-
-    let first_summary = first.summary().unwrap().to_string();
-    let second_summary = second.summary().unwrap().to_string();
-
-    let story_number = match get_story_numbers(&second_summary, matcher) {
-        Ok(story_number) => story_number,
-        Err(_) => vec!["orphan".to_string()]
-    };
-
-    let diff_stats = diff.stats().unwrap();
-    let files_changed = diff_stats.files_changed();
-    let insertions = diff_stats.insertions();
-    let deletions = diff_stats.deletions();
-
-    Some(DiffResult { story_number, points: "0".to_string(), first_summary, second_summary, files_changed, insertions, deletions })
-}
-
-fn calculate_diff_totals(start: &RepoPosition, matcher: &str) -> Result<HashMap<String, DiffTotal>, Error> {
-    let RepoPosition {repository, branch: _, commit} = start;
+fn collect_diffs(start: &RepoPosition, matcher: &str) -> Result<DiffCollection, Error> {
+    let RepoPosition { repository, branch: _, commit } = start;
 
     let mut first_rev_collection = repository.revwalk()?;
     first_rev_collection.set_sorting(Sort::NONE);
@@ -106,27 +66,75 @@ fn calculate_diff_totals(start: &RepoPosition, matcher: &str) -> Result<HashMap<
 
     let mut diff_totals_sum: HashMap<String, DiffTotal> = HashMap::new();
 
-    first_commit_iterator // committerator, if you will
+    let result: Result<Vec<DiffResult>, Error> = first_commit_iterator
         .zip(second_commit_iterator)
         .filter(|oids| {
-
             let (first, second) = oids;
             first.is_ok() && second.is_ok()
-
         }).map(|oids| {
-
         let (first, second) = oids;
         OidPair(first.unwrap(), second.unwrap())
-
     }).filter_map(|oid_pair| {
-
         get_commit_pair(&repository, oid_pair)
-
-    }).filter_map(|commit_pair| {
-
+    }).map(|commit_pair| {
         parse_commit_pair(&commit_pair, matcher)
+    }).collect();
 
-    }).for_each(|diff_result| {
+    match result {
+        Ok(diffs) => Ok( DiffCollection { diffs } ),
+        Err(error) => Err(error)
+    }
+}
+
+fn get_commit_pair(repository: &Repository, oid_pair: OidPair) -> Option<CommitPair> {
+    let mut diff_options = DiffOptions::new();
+
+    let OidPair(first_oid, second_oid) = oid_pair;
+    let first_commit = get_commit(&repository, &first_oid).unwrap();
+    let second_commit = get_commit(&repository, &second_oid).unwrap();
+
+    let diff = repository.diff_tree_to_tree(Some(&first_commit.tree().unwrap()), Some(&second_commit.tree().unwrap()), Some(&mut diff_options)).unwrap();
+
+    Some(CommitPair {
+        first: first_commit,
+        second: second_commit,
+        diff,
+    })
+}
+
+
+fn parse_commit_pair(diff: &CommitPair, matcher: &str) -> Result<DiffResult, Error> {
+    let CommitPair { first, second, diff } = diff;
+
+
+    let first_summary = first.summary().unwrap_or("").to_string();
+    let second_summary = second.summary().unwrap_or("").to_string();
+
+    let story_number = match get_story_numbers(&second_summary, matcher) {
+        Ok(story_number) => story_number,
+        Err(_) => vec!["orphan".to_string()]
+    };
+
+    let diff_stats = diff.stats()?;
+    let files_changed = diff_stats.files_changed();
+    let insertions = diff_stats.insertions();
+    let deletions = diff_stats.deletions();
+
+    Ok(DiffResult {
+        story_number,
+        points: "0".to_string(),
+        first_summary,
+        second_summary,
+        files_changed,
+        insertions,
+        deletions,
+    })
+}
+
+pub fn calculate_diff_totals(diff_collection: &DiffCollection) -> Result<HashMap<String, DiffTotal>, Error> {
+    let mut diff_totals_sum: HashMap<String, DiffTotal> = HashMap::new();
+
+    diff_collection.diffs.iter().for_each(|diff_result| {
 
 //        println!("{}", diff_result.to_string());
         for story_number in diff_result.story_number.iter() {
@@ -138,12 +146,12 @@ fn calculate_diff_totals(start: &RepoPosition, matcher: &str) -> Result<HashMap<
                         files_changed: diff_total.files_changed + diff_result.insertions,
                         insertions: diff_total.insertions + diff_result.deletions,
                         deletions: diff_total.deletions + diff_result.files_changed,
-                        total_diff_results: diff_total.total_diff_results + 1
+                        total_diff_results: diff_total.total_diff_results + 1,
                     };
 
                     //println!("{}", new_total.to_string());
                     diff_totals_sum.insert(story_number.to_string(), new_total);
-                },
+                }
                 None => {
                     let new_total = DiffTotal {
                         story_number: story_number.to_string(),
@@ -151,7 +159,7 @@ fn calculate_diff_totals(start: &RepoPosition, matcher: &str) -> Result<HashMap<
                         files_changed: diff_result.files_changed,
                         insertions: diff_result.insertions,
                         deletions: diff_result.deletions,
-                        total_diff_results: 1
+                        total_diff_results: 1,
                     };
 
                     //println!("{}", new_total.to_string());
