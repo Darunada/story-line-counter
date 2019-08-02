@@ -1,7 +1,7 @@
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Formatter;
-use serde::{Serialize, Deserialize};
-use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DiffResult {
@@ -11,28 +11,30 @@ pub struct DiffResult {
     pub second_summary: String,
     pub files_changed: usize,
     pub insertions: usize,
-    pub deletions: usize
+    pub deletions: usize,
 }
 
 impl fmt::Display for DiffResult {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f,
-               "{} ({}) :: ({} files, ∑({},|-{}|) = {}) :: {} -> {}",
-               self.story_number.join(", "),
-               self.points,
-               self.files_changed,
-               self.insertions,
-               self.deletions,
-               self.insertions + self.deletions,
-               self.first_summary,
-               self.second_summary)?;
+        write!(
+            f,
+            "{} ({}) :: ({} files, ∑({},|-{}|) = {}) :: {} -> {}",
+            self.story_number.join(", "),
+            self.points,
+            self.files_changed,
+            self.insertions,
+            self.deletions,
+            self.insertions + self.deletions,
+            self.first_summary,
+            self.second_summary
+        )?;
         Ok(())
     }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DiffCollection {
-    pub diffs: Vec<DiffResult>
+    pub diffs: Vec<DiffResult>,
 }
 
 impl fmt::Display for DiffCollection {
@@ -48,7 +50,7 @@ impl fmt::Display for DiffCollection {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct StoryPoint {
     pub story_number: String,
-    pub points: String
+    pub points: String,
 }
 
 impl fmt::Display for StoryPoint {
@@ -60,7 +62,7 @@ impl fmt::Display for StoryPoint {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct StoryPointCollection {
-   pub story_points: Vec<StoryPoint>,
+    pub story_points: Vec<StoryPoint>,
 }
 
 impl fmt::Display for StoryPointCollection {
@@ -85,22 +87,24 @@ pub struct DiffTotal {
 
 impl fmt::Display for DiffTotal {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f,
-               "{} ({}) :: ({} files, ∑({},|-{}|) = {}) in {} commits",
-               self.story_number,
-               self.points,
-               self.files_changed,
-               self.insertions,
-               self.deletions,
-               self.insertions + self.deletions,
-               self.total_diff_results)?;
+        write!(
+            f,
+            "{} ({}) :: ({} files, ∑({},|-{}|) = {}) in {} commits",
+            self.story_number,
+            self.points,
+            self.files_changed,
+            self.insertions,
+            self.deletions,
+            self.insertions + self.deletions,
+            self.total_diff_results
+        )?;
         Ok(())
     }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DiffTotalCollection {
-    pub totals: HashMap<String, DiffTotal>
+    pub totals: HashMap<String, DiffTotal>,
 }
 
 impl fmt::Display for DiffTotalCollection {
