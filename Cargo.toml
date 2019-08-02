@@ -7,7 +7,7 @@ publish = false # never publish this utility
 
 ## Project Definition
 name = "story-line-counter"
-version = "0.1.0"
+version = "1.0.0"
 
 ## Project Metadata
 keywords = ["git", "version1", "jira"]
