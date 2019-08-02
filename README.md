@@ -13,6 +13,7 @@ This utility is built in Rust.  Is this your first time?  It is mine @_@
 - You have `~/.cargo/bin` added to your PATH variable
 - Build and run in one step with `cargo run --`, or `cargo run -- --help`
 - or, Build the executable with 
+
 ```
 $ cargo build --release
   ... builds in a few minutes ...
@@ -27,6 +28,7 @@ from within any git repository simply by running `story-line-counter`.
  
 Usage
 --------------------------------------
+
 ```
 USAGE:
     story-line-counter [SUBCOMMAND]
