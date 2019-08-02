@@ -3,7 +3,7 @@ use std::string::ToString;
 use regex::Regex;
 use git2::{Commit, Diff, DiffOptions, Error, Oid, Repository, Sort};
 
-use crate::repo::diff::{DiffResult, DiffTotal, DiffTotalCollection, DiffCollection};
+use crate::repo::diff::{DiffResult, DiffTotal, DiffCollection};
 use crate::repo::core::RepoPosition;
 use crate::repo::core::get_commit;
 
@@ -64,7 +64,7 @@ fn collect_diffs(start: &RepoPosition, matcher: &str) -> Result<DiffCollection, 
     let second_commit_iterator = second_rev_collection.into_iter();
     first_commit_iterator.next();
 
-    let mut diff_totals_sum: HashMap<String, DiffTotal> = HashMap::new();
+    let diff_totals_sum: HashMap<String, DiffTotal> = HashMap::new();
 
     let result: Result<Vec<DiffResult>, Error> = first_commit_iterator
         .zip(second_commit_iterator)

@@ -1,6 +1,4 @@
-use clap::{ArgMatches, Arg, App, SubCommand};
-use std::path::Path;
-use std::ffi::OsStr;
+use clap::ArgMatches;
 
 pub struct CollectArgs {
     pub branch: String,

@@ -2,101 +2,17 @@
 #[macro_use]
 extern crate clap;
 
-use clap::{App, ArgMatches, Arg, SubCommand};
 use crate::repo::{collect_repo, calculate_diff_totals};
 
-use repo::diff::DiffTotalCollection;
-use core::fmt;
 use crate::args_parser::{parse_total_args, CollectArgs, TotalArgs, parse_collect_args};
-use crate::repo::diff::DiffCollection;
-use std::error::Error;
+use crate::repo::diff::{DiffCollection, DiffTotalCollection};
+use clap::{Arg, SubCommand, App};
 use std::path::Path;
-use std::{error, io};
-use std::io::LineWriter;
+use crate::errors::{CliError, InputError};
 
 mod repo;
 mod args_parser;
-
-
-trait New {
-    fn new(description: &'static str) -> Self;
-}
-
-#[derive(Debug, Clone)]
-struct InputError {
-    description: String
-}
-
-impl New for InputError {
-    fn new(description: &'static str) -> Self {
-        InputError {
-            description: description.to_string()
-        }
-    }
-}
-
-
-impl Error for InputError {
-    fn description(&self) -> &str {
-        self.description()
-    }
-}
-
-impl fmt::Display for InputError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.description)?;
-        Ok(())
-    }
-}
-
-
-#[derive(Debug)]
-enum CliError {
-    Git(git2::Error),
-    IO(std::io::Error),
-    Input(InputError),
-}
-
-impl From<git2::Error> for CliError {
-    fn from(err: git2::Error) -> CliError {
-        CliError::Git(err)
-    }
-}
-
-
-impl From<std::io::Error> for CliError {
-    fn from(err: std::io::Error) -> CliError {
-        CliError::IO(err)
-    }
-}
-
-
-impl From<InputError> for CliError {
-    fn from(err: InputError) -> CliError {
-        CliError::Input(err)
-    }
-}
-
-impl fmt::Display for CliError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            CliError::Git(ref err) => err.fmt(f),
-            CliError::IO(ref err) => err.fmt(f),
-            CliError::Input(ref err) => err.fmt(f),
-        }
-    }
-}
-
-impl Error for CliError {
-    fn description(&self) -> &str {
-        match *self {
-            CliError::Git(ref err) => err.description(),
-            CliError::IO(ref err) => err.description(),
-            CliError::Input(ref err) => err.description(),
-        }
-    }
-}
-
+mod errors;
 
 fn main() {
     let collect_args = [
@@ -203,7 +119,7 @@ fn total_command(args: &TotalArgs) -> Result<(), CliError> {
                 .map(|string| Path::new(string) )
                 .collect::<Vec<&Path>>())
         },
-        None => Err(InputError::new("You must specify at least one input file path."))
+        None => Err(InputError::from("You must specify at least one input file path."))
     }?;
 
     for path in file_paths {
@@ -231,7 +147,9 @@ fn collect_command(args: &CollectArgs) -> Result<(), CliError> {
 
     match diff_collection {
         Ok(diff_collection) => {
-            print!("{}", diff_collection.to_string());
+            let json =  serde_json::to_string(&diff_collection).unwrap();
+
+            print!("{}", json);
             Ok(())
         },
         Err(error) => Err(error)
@@ -254,7 +172,6 @@ fn run_command(args: &CollectArgs) -> Result<(), CliError> {
         Err(error) => Err(error)
     }
 }
-
 
 fn total() -> Result<DiffTotalCollection, CliError> {
     unimplemented!();
