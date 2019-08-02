@@ -1,15 +1,15 @@
+use git2::{Commit, Diff, DiffOptions, Error, Oid, Repository, Sort};
+use regex::Regex;
 use std::collections::HashMap;
 use std::string::ToString;
-use regex::Regex;
-use git2::{Commit, Diff, DiffOptions, Error, Oid, Repository, Sort};
 
-use crate::repo::diff::{DiffResult, DiffTotal, DiffCollection, DiffTotalCollection};
-use crate::repo::core::RepoPosition;
-use crate::repo::core::get_commit;
 use crate::errors::CliError;
+use crate::repo::core::get_commit;
+use crate::repo::core::RepoPosition;
+use crate::repo::diff::{DiffCollection, DiffResult, DiffTotal, DiffTotalCollection};
 
-pub mod diff;
 mod core;
+pub mod diff;
 
 struct OidPair(Oid, Oid);
 
@@ -19,10 +19,9 @@ struct CommitPair<'repo> {
     diff: Diff<'repo>,
 }
 
-
 pub fn total(diff_collection: DiffCollection) -> Result<DiffTotalCollection, CliError> {
     let totals = calculate_diff_totals(&diff_collection).map_err(CliError::Git)?;
-    Ok( DiffTotalCollection { totals } )
+    Ok(DiffTotalCollection { totals })
 }
 
 pub fn collect(path: &str, branch: &str, matcher: &str) -> Result<DiffCollection, CliError> {
@@ -32,10 +31,8 @@ pub fn collect(path: &str, branch: &str, matcher: &str) -> Result<DiffCollection
 pub fn run(path: &str, branch: &str, matcher: &str) -> Result<DiffTotalCollection, CliError> {
     let collection = collect_repo(path, branch, matcher).map_err(CliError::Git)?;
     let diff_collection = total(collection)?;
-    Ok( diff_collection )
+    Ok(diff_collection)
 }
-
-
 
 fn get_story_numbers(summary: &str, matcher: &str) -> Result<Vec<String>, Error> {
     let regex = match matcher {
@@ -44,7 +41,7 @@ fn get_story_numbers(summary: &str, matcher: &str) -> Result<Vec<String>, Error>
 
         // matches 's-10345', 's 10345', 'd-10345', 'd 10345', 'S-10345', 'S 10345',
         // 'D-10345', 'D 10345', 's- 10345', 'S -10345', 'd  - 10345', 'D -  10345'
-        _ => Regex::new(r"([sdSD])[\s\-]*(\d{5})").unwrap()
+        _ => Regex::new(r"([sdSD])[\s\-]*(\d{5})").unwrap(),
     };
 
     let mut story_numbers = Vec::new();
@@ -68,7 +65,11 @@ fn collect_repo(repo_path: &str, branch: &str, matcher: &str) -> Result<DiffColl
 }
 
 fn collect_diffs(start: &RepoPosition, matcher: &str) -> Result<DiffCollection, Error> {
-    let RepoPosition { repository, branch: _, commit } = start;
+    let RepoPosition {
+        repository,
+        branch: _,
+        commit,
+    } = start;
 
     let mut first_rev_collection = repository.revwalk()?;
     first_rev_collection.set_sorting(Sort::NONE);
@@ -87,18 +88,18 @@ fn collect_diffs(start: &RepoPosition, matcher: &str) -> Result<DiffCollection, 
         .filter(|oids| {
             let (first, second) = oids;
             first.is_ok() && second.is_ok()
-        }).map(|oids| {
-        let (first, second) = oids;
-        OidPair(first.unwrap(), second.unwrap())
-    }).filter_map(|oid_pair| {
-        get_commit_pair(&repository, oid_pair)
-    }).map(|commit_pair| {
-        parse_commit_pair(&commit_pair, matcher)
-    }).collect();
+        })
+        .map(|oids| {
+            let (first, second) = oids;
+            OidPair(first.unwrap(), second.unwrap())
+        })
+        .filter_map(|oid_pair| get_commit_pair(&repository, oid_pair))
+        .map(|commit_pair| parse_commit_pair(&commit_pair, matcher))
+        .collect();
 
     match result {
-        Ok(diffs) => Ok( DiffCollection { diffs } ),
-        Err(error) => Err(error)
+        Ok(diffs) => Ok(DiffCollection { diffs }),
+        Err(error) => Err(error),
     }
 }
 
@@ -109,7 +110,13 @@ fn get_commit_pair(repository: &Repository, oid_pair: OidPair) -> Option<CommitP
     let first_commit = get_commit(&repository, &first_oid).unwrap();
     let second_commit = get_commit(&repository, &second_oid).unwrap();
 
-    let diff = repository.diff_tree_to_tree(Some(&first_commit.tree().unwrap()), Some(&second_commit.tree().unwrap()), Some(&mut diff_options)).unwrap();
+    let diff = repository
+        .diff_tree_to_tree(
+            Some(&first_commit.tree().unwrap()),
+            Some(&second_commit.tree().unwrap()),
+            Some(&mut diff_options),
+        )
+        .unwrap();
 
     Some(CommitPair {
         first: first_commit,
@@ -118,17 +125,19 @@ fn get_commit_pair(repository: &Repository, oid_pair: OidPair) -> Option<CommitP
     })
 }
 
-
 fn parse_commit_pair(diff: &CommitPair, matcher: &str) -> Result<DiffResult, Error> {
-    let CommitPair { first, second, diff } = diff;
-
+    let CommitPair {
+        first,
+        second,
+        diff,
+    } = diff;
 
     let first_summary = first.summary().unwrap_or("").to_string();
     let second_summary = second.summary().unwrap_or("").to_string();
 
     let story_number = match get_story_numbers(&second_summary, matcher) {
         Ok(story_number) => story_number,
-        Err(_) => vec!["orphan".to_string()]
+        Err(_) => vec!["orphan".to_string()],
     };
 
     let diff_stats = diff.stats()?;
@@ -147,12 +156,13 @@ fn parse_commit_pair(diff: &CommitPair, matcher: &str) -> Result<DiffResult, Err
     })
 }
 
-fn calculate_diff_totals(diff_collection: &DiffCollection) -> Result<HashMap<String, DiffTotal>, Error> {
+fn calculate_diff_totals(
+    diff_collection: &DiffCollection,
+) -> Result<HashMap<String, DiffTotal>, Error> {
     let mut diff_totals_sum: HashMap<String, DiffTotal> = HashMap::new();
 
     diff_collection.diffs.iter().for_each(|diff_result| {
-
-//        println!("{}", diff_result.to_string());
+        //        println!("{}", diff_result.to_string());
         for story_number in diff_result.story_number.iter() {
             match diff_totals_sum.get(story_number) {
                 Some(diff_total) => {
@@ -182,9 +192,8 @@ fn calculate_diff_totals(diff_collection: &DiffCollection) -> Result<HashMap<Str
                     diff_totals_sum.insert(story_number.to_string(), new_total);
                 }
             }
-        };
+        }
     });
 
     Ok(diff_totals_sum)
 }
-

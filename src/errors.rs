@@ -1,10 +1,10 @@
+use serde_json::error::Category;
 use std::error::Error;
 use std::fmt;
-use serde_json::error::Category;
 
 #[derive(Debug, Clone)]
 pub struct InputError {
-    description: String
+    description: String,
 }
 
 impl From<String> for InputError {
@@ -15,10 +15,11 @@ impl From<String> for InputError {
 
 impl From<&str> for InputError {
     fn from(description: &str) -> InputError {
-        InputError { description: description.to_string() }
+        InputError {
+            description: description.to_string(),
+        }
     }
 }
-
 
 impl Error for InputError {
     fn description(&self) -> &str {
@@ -32,7 +33,6 @@ impl fmt::Display for InputError {
         Ok(())
     }
 }
-
 
 #[derive(Debug)]
 pub enum CliError {
@@ -53,7 +53,7 @@ impl From<serde_json::Error> for CliError {
             Category::Io => format!("An IO error occurred: {}", error.description()),
             Category::Syntax => format!("A syntax error occurred: {}", error.description()),
             Category::Data => format!("A data error occurred: {}", error.description()),
-            Category::Eof => format!("Unexpected EOF. {}", error.description())
+            Category::Eof => format!("Unexpected EOF. {}", error.description()),
         };
         CliError::Input(InputError::from(description))
     }
