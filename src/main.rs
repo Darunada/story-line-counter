@@ -5,10 +5,12 @@ extern crate clap;
 use crate::repo::{collect_repo, calculate_diff_totals};
 
 use crate::args_parser::{parse_total_args, CollectArgs, TotalArgs, parse_collect_args};
-use crate::repo::diff::{DiffCollection, DiffTotalCollection};
+use crate::repo::diff::{DiffCollection, DiffTotalCollection, DiffResult};
 use clap::{Arg, SubCommand, App};
 use std::path::Path;
 use crate::errors::{CliError, InputError};
+use std::fs::File;
+use std::io::{Read, BufReader};
 
 mod repo;
 mod args_parser;
@@ -122,59 +124,56 @@ fn total_command(args: &TotalArgs) -> Result<(), CliError> {
         None => Err(InputError::from("You must specify at least one input file path."))
     }?;
 
+    let mut collections: Vec<DiffCollection> = Vec::new();
     for path in file_paths {
         println!("{}", path.display());
+        let file = File::open(path)?;
+        let reader = BufReader::new(file);
+        let collection = serde_json::from_reader(reader)?;
+        collections.push(collection);
     }
 
-    unimplemented!();
-
-    // TODO: get file streams from DiffCollections paths/s.
-
-    // TODO: total all the diff collections into a DiffTotalCollection
-    let diff_total_collection = total()?;
+    let mut diff_results: Vec<DiffResult> = Vec::new();
+    for collection in collections {
+        collection.diffs.into_iter().for_each(|diff_result| {
+            diff_results.push(diff_result);
+        })
+    }
+    let diff_collection = DiffCollection { diffs: diff_results };
+    let diff_total_collection = total(diff_collection)?;
 
     // TODO: set points values with with points file
 
+    println!("{}", diff_total_collection);
     Ok(())
 }
 
 fn collect_command(args: &CollectArgs) -> Result<(), CliError> {
 
     let CollectArgs { branch, matcher, path, points_path } = args;
-    let diff_collection = collect(path, branch, matcher);
+    let diff_collection = collect(path, branch, matcher)?;
 
     // TODO: set points values with with points file
 
-    match diff_collection {
-        Ok(diff_collection) => {
-            let json =  serde_json::to_string(&diff_collection).unwrap();
-
-            print!("{}", json);
-            Ok(())
-        },
-        Err(error) => Err(error)
-    }
+    let json =  serde_json::to_string(&diff_collection)?;
+    print!("{}", json);
+    Ok(())
 }
 
 
 fn run_command(args: &CollectArgs) -> Result<(), CliError> {
-
     let CollectArgs { branch, matcher, path, points_path } = args;
-    let diff_total_collection = run(path, branch, matcher);
+    let diff_total_collection = run(path, branch, matcher)?;
 
     // TODO: set points values with with points file
 
-    match diff_total_collection {
-        Ok(diff_total_collection) => {
-            print!("{}", diff_total_collection.to_string());
-            Ok(())
-        },
-        Err(error) => Err(error)
-    }
+    print!("{}", diff_total_collection.to_string());
+    Ok(())
 }
 
-fn total() -> Result<DiffTotalCollection, CliError> {
-    unimplemented!();
+fn total(diff_collection: DiffCollection) -> Result<DiffTotalCollection, CliError> {
+    let totals = calculate_diff_totals(&diff_collection).map_err(CliError::Git)?;
+    Ok( DiffTotalCollection { totals } )
 }
 
 fn collect(path: &str, branch: &str, matcher: &str) -> Result<DiffCollection, CliError> {
@@ -183,6 +182,6 @@ fn collect(path: &str, branch: &str, matcher: &str) -> Result<DiffCollection, Cl
 
 fn run(path: &str, branch: &str, matcher: &str) -> Result<DiffTotalCollection, CliError> {
     let collection = collect_repo(path, branch, matcher).map_err(CliError::Git)?;
-    let totals = calculate_diff_totals(&collection).map_err(CliError::Git)?;
-    Ok( DiffTotalCollection { totals } )
+    let diff_collection = total(collection)?;
+    Ok( diff_collection )
 }
