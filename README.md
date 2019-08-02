@@ -29,19 +29,17 @@ Usage
 --------------------------------------
 ```
 USAGE:
-    story-line-counter [FLAGS] [OPTIONS] [filepath]
+    story-line-counter [SUBCOMMAND]
 
 FLAGS:
     -h, --help       Prints help information
     -V, --version    Prints version information
 
-OPTIONS:
-    -b, --branch <branch>      The branch name to scan. [default: master]
-    -m, --matcher <matcher>    The issue tracker counting schema to use. [default: v1]  [possible values: v1, jira]
-
-ARGS:
-    <filepath>    The path to the git repo to scan. [default: .]
-
+SUBCOMMANDS:
+    collect    Parses a git repo and outputs DiffCollection objects.
+    help       Prints this message or the help of the given subcommand(s)
+    run        Opens a repo and outputs a DiffTotalCollection.
+    total      Loads a DiffCollection file and outputs a DiffTotalCollection.
 ```
  
 Roadmap
@@ -50,9 +48,6 @@ This is my first Rust project and I am enjoying it! Here is what I have in mind
 to add next.  Pull requests are welcome!
 
 Todo for  1.0.0 release:
-1. total, collect, and run command implementations
-1. input and output JSON formatted data
-1. collect command can take input DiffCollection/s via pipe or args
 1. points file can be loaded to add points to any step
 
 Bugs:

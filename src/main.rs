@@ -5,7 +5,7 @@ use crate::repo::{collect, run, total};
 
 use crate::args_parser::{parse_collect_args, parse_total_args, CollectArgs, TotalArgs};
 use crate::errors::{CliError, InputError};
-use crate::repo::diff::{DiffCollection, DiffResult};
+use crate::repo::diff::{DiffCollection, DiffResult, StoryPointCollection};
 use clap::{App, Arg, SubCommand};
 use std::fs::File;
 use std::io::BufReader;
@@ -116,7 +116,6 @@ fn total_command(args: &TotalArgs) -> Result<(), CliError> {
 
     let mut collections: Vec<DiffCollection> = Vec::new();
     for path in file_paths {
-        println!("{}", path.display());
         let file = File::open(path)?;
         let reader = BufReader::new(file);
         let collection = serde_json::from_reader(reader)?;
@@ -149,6 +148,12 @@ fn collect_command(args: &CollectArgs) -> Result<(), CliError> {
     } = args;
     let diff_collection = collect(path, branch, matcher)?;
 
+//    if points_path.is_some() {
+//        let str_path = points_path.;
+//        let path = Path::new(str_path);
+//        let points_collection = load_points()?;
+//        println!("{}", points_collection);
+//    }
     // TODO: set points values with with points file
 
     let json = serde_json::to_string(&diff_collection)?;
@@ -169,4 +174,11 @@ fn run_command(args: &CollectArgs) -> Result<(), CliError> {
 
     print!("{}", diff_total_collection.to_string());
     Ok(())
+}
+
+fn load_points(points_path: &Path) -> Result<StoryPointCollection, CliError> {
+    let file = File::open(points_path)?;
+    let reader = BufReader::new(file);
+    let points_collection = serde_json::from_reader(reader)?;
+    Ok( points_collection )
 }
