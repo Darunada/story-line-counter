@@ -8,26 +8,21 @@ Description
 This utility analyzes a git repo's commit messages for Version1 or Jira story numbers 
 and gets the total number of changed lines associated with a story.
 
-Getting Started
+Installation
 --------------------------------------
 This utility is built in Rust.  Is this your first time?  It is mine @_@
 
 - You have Rust installed, preferably via `rustup`
 - You have `~/.cargo/bin` added to your PATH variable
-- Build and run in one step with `cargo run --`, or `cargo run -- --help`
-- or, Build the executable with 
+- Build and install the program with 
 
 ```
-$ cargo build --release
+$ cargo install story-line-counter
   ... builds in a few minutes ...
-$ ./target/release/story-line-counter
-$ ./target/release/story-line-counter --help
-$ ./target/release/story-line-counter run --help
-```
+$ which story-line-counter
+  /home/you/.cargo/bin/story-line-counter
+``` 
 
-At this point it's ready to use, but only the run operation is implemented.  Include the executable in your PATH and you can use it
-from within any git repository simply by running `story-line-counter`.
- 
 Usage
 --------------------------------------
 
@@ -67,3 +62,9 @@ $ story-line-counter total -p /path/to/points.json repo1.json repo2.json
 
 Including a points file is optional, but you must generate your own to match story numbers with point 
 values. An example points.json file is included in this repo [here](points.json). It may be pretty-printed or not.
+
+
+Contributing
+--------------------------------------
+Pull requests are welcome!
+ 
