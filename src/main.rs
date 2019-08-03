@@ -9,7 +9,6 @@ use crate::repo::diff::{
     DiffCollection, DiffResult, DiffTotalCollection, Pointable, StoryPointCollection,
 };
 use clap::{App, Arg, SubCommand};
-use std::borrow::Borrow;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
@@ -151,7 +150,7 @@ fn collect_command(args: &CollectArgs) -> Result<(), CliError> {
         branch,
         matcher,
         path,
-        points_path,
+        _points_path,
     } = args;
     let diff_collection = collect(path, branch, matcher)?;
 

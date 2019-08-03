@@ -7,12 +7,14 @@ publish = false # never publish this utility
 
 ## Project Definition
 name = "story-line-counter"
+description = "This utility analyzes a git repo's commit messages for Version1 or Jira story numbers and gets the total number of changed lines associated with a story."
 version = "1.0.0"
 
 ## Project Metadata
 keywords = ["git", "version1", "jira"]
 categories = ["command-line-utilities"]
 authors = ["Lea Fairbanks <lea.rae.fairbanks@gmail.com>"]
+license = "MIT OR GPL-3.0-or-later"
 
 ## Repository information
 repository = "https://github.com/darunada/story-line-counter"
