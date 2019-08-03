@@ -5,8 +5,11 @@ use crate::repo::{collect, run, total};
 
 use crate::args_parser::{parse_collect_args, parse_total_args, CollectArgs, TotalArgs};
 use crate::errors::{CliError, InputError};
-use crate::repo::diff::{DiffCollection, DiffResult, StoryPointCollection};
+use crate::repo::diff::{
+    DiffCollection, DiffResult, DiffTotalCollection, Pointable, StoryPointCollection,
+};
 use clap::{App, Arg, SubCommand};
+use std::borrow::Borrow;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
@@ -28,12 +31,6 @@ fn main() {
             .default_value("v1")
             .long("matcher")
             .short("m"),
-        Arg::with_name("points")
-            .help("The path to a points file to merge.")
-            .takes_value(true)
-            .required(false)
-            .long("points")
-            .short("p"),
         Arg::with_name("filepath")
             .help("The path to the git repo to scan.")
             .required(false)
@@ -54,7 +51,13 @@ fn main() {
                 .version(crate_version!())
                 .author(crate_authors!())
                 .about("Opens a repo and outputs a DiffTotalCollection.")
-                .args(&collect_args),
+                .args(&collect_args)
+                .arg(Arg::with_name("points")
+                         .help("The path to a points file to merge.")
+                         .takes_value(true)
+                         .required(false)
+                         .long("points")
+                         .short("p")),
             SubCommand::with_name("total")
                 .version(crate_version!())
                 .author(crate_authors!())
@@ -78,7 +81,7 @@ fn main() {
     let program_result = match matches.subcommand() {
         ("collect", Some(collect_args)) => collect_command(&parse_collect_args(collect_args)),
         ("total", Some(total_args)) => total_command(&parse_total_args(total_args)),
-        (_, collect_args) => {
+        ("run", collect_args) => {
             if collect_args.is_some() {
                 run_command(&parse_collect_args(collect_args.unwrap()))
             } else {
@@ -90,6 +93,10 @@ fn main() {
                 };
                 run_command(&default)
             }
+        },
+        _ => {
+            println!("Please specify a valid subcommand: collect, total, or run");
+            Ok(())
         }
     };
 
@@ -131,11 +138,11 @@ fn total_command(args: &TotalArgs) -> Result<(), CliError> {
     let diff_collection = DiffCollection {
         diffs: diff_results,
     };
-    let diff_total_collection = total(diff_collection)?;
+    let mut diff_total_collection = total(diff_collection)?;
+    add_points(&mut diff_total_collection, points_path)?;
 
-    // TODO: set points values with with points file
-
-    println!("{}", diff_total_collection);
+    let json = serde_json::to_string(&diff_total_collection)?;
+    println!("{}", json);
     Ok(())
 }
 
@@ -148,16 +155,8 @@ fn collect_command(args: &CollectArgs) -> Result<(), CliError> {
     } = args;
     let diff_collection = collect(path, branch, matcher)?;
 
-//    if points_path.is_some() {
-//        let str_path = points_path.;
-//        let path = Path::new(str_path);
-//        let points_collection = load_points()?;
-//        println!("{}", points_collection);
-//    }
-    // TODO: set points values with with points file
-
     let json = serde_json::to_string(&diff_collection)?;
-    print!("{}", json);
+    println!("{}", json);
     Ok(())
 }
 
@@ -168,17 +167,32 @@ fn run_command(args: &CollectArgs) -> Result<(), CliError> {
         path,
         points_path,
     } = args;
-    let diff_total_collection = run(path, branch, matcher)?;
 
-    // TODO: set points values with with points file
+    let mut diff_total_collection = run(path, branch, matcher)?;
+    add_points(&mut diff_total_collection, points_path)?;
 
-    print!("{}", diff_total_collection.to_string());
+    let json = serde_json::to_string(&diff_total_collection)?;
+    println!("{}", json);
+    Ok(())
+}
+
+fn add_points(
+    diff_total_collection: &mut DiffTotalCollection,
+    points_path: &Option<String>,
+) -> Result<(), CliError> {
+    if points_path.is_some() {
+        let str_path = points_path.to_owned().unwrap();
+        let path = Path::new(&str_path);
+        let points_collection = load_points(path)?;
+        diff_total_collection.add_points(&points_collection);
+    }
+
     Ok(())
 }
 
 fn load_points(points_path: &Path) -> Result<StoryPointCollection, CliError> {
-    let file = File::open(points_path)?;
+    let file = File::open(&points_path)?;
     let reader = BufReader::new(file);
     let points_collection = serde_json::from_reader(reader)?;
-    Ok( points_collection )
+    Ok(points_collection)
 }

@@ -75,6 +75,10 @@ impl fmt::Display for StoryPointCollection {
     }
 }
 
+pub trait Pointable {
+    fn add_points(&mut self, points_collection: &StoryPointCollection) -> &mut Self;
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DiffTotal {
     pub story_number: String,
@@ -83,6 +87,28 @@ pub struct DiffTotal {
     pub insertions: usize,
     pub deletions: usize,
     pub total_diff_results: usize,
+}
+
+impl Pointable for DiffTotal {
+    fn add_points(&mut self, points_collection: &StoryPointCollection) -> &mut Self {
+        let story_number = &*self.story_number;
+
+
+        if story_number.len() > 0 {
+            let point = points_collection.story_points.iter().filter(|point| {
+                point.story_number.eq(story_number)
+            }).take(1).last();
+
+            match point {
+                Some(point) => {
+                    self.points = point.points.clone();
+                },
+                None => ()
+            }
+        }
+
+        self
+    }
 }
 
 impl fmt::Display for DiffTotal {
@@ -114,5 +140,15 @@ impl fmt::Display for DiffTotalCollection {
         });
 
         Ok(())
+    }
+}
+
+impl Pointable for DiffTotalCollection {
+    fn add_points(&mut self, points_collection: &StoryPointCollection) -> &mut Self {
+        for (story_number, total) in &mut self.totals {
+            total.add_points(points_collection);
+        }
+
+        self
     }
 }

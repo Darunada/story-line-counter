@@ -20,7 +20,6 @@ $ cargo build --release
 $ ./target/release/story-line-counter
 $ ./target/release/story-line-counter --help
 $ ./target/release/story-line-counter run --help
-
 ```
 
 At this point it's ready to use, but only the run operation is implemented.  Include the executable in your PATH and you can use it
@@ -30,6 +29,11 @@ Usage
 --------------------------------------
 
 ```
+$ story-line-counter --help
+
+story-line-counter 1.0.0
+Lea Fairbanks <lea.rae.fairbanks@gmail.com>
+
 USAGE:
     story-line-counter [SUBCOMMAND]
 
@@ -43,16 +47,20 @@ SUBCOMMANDS:
     run        Opens a repo and outputs a DiffTotalCollection.
     total      Loads a DiffCollection file and outputs a DiffTotalCollection.
 ```
- 
-Roadmap
---------------------------------------
-This is my first Rust project and I am enjoying it! Here is what I have in mind 
-to add next.  Pull requests are welcome!
 
-Todo for  1.0.0 release:
-1. points file can be loaded to add points to any step
+You may collect and total a repository in one step.
 
-Bugs:
-1. traversing whole branch trees instead of just the branch's commits.  Works fine when commits are squashed, does 
-    not work fine when commits are merged.
-1. the matcher regex could be made more robust, it matches a lot of non-stories currently. 
+```
+$ story-line-counter run -p /path/to/points.json /path/to/repo
+```
+
+Or you may split it into two steps, to total multiple repos together.
+
+```
+$ story-line-counter collect /path/to/repo1 > repo1.json
+$ story-line-counter collect /path/to/repo2 > repo2.json
+$ story-line-counter total -p /path/to/points.json repo1.json repo2.json
+```
+
+Including a points file is optional, but you must generate your own to match story numbers with point 
+values. An example points.json file is included in this repo [here](points.json). It may be pretty-printed.
