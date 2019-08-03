@@ -151,7 +151,7 @@ fn collect_command(args: &CollectArgs) -> Result<(), CliError> {
         branch,
         matcher,
         path,
-        points_path,
+        points_path: _points_path,
     } = args;
     let diff_collection = collect(path, branch, matcher)?;
 

@@ -1,5 +1,8 @@
 # Story Line Counter #
 
+[![Latest Version](https://img.shields.io/crates/v/story-line-counter.svg)](https://crates.io/crates/story-line-counter)
+[![Rustc Version 1.36+](https://img.shields.io/badge/rustc-1.36+-lightgray.svg)](https://blog.rust-lang.org/2017/02/02/Rust-1.15.html)
+
 Description
 --------------------------------------
 This utility analyzes a git repo's commit messages for Version1 or Jira story numbers 
@@ -63,4 +66,4 @@ $ story-line-counter total -p /path/to/points.json repo1.json repo2.json
 ```
 
 Including a points file is optional, but you must generate your own to match story numbers with point 
-values. An example points.json file is included in this repo [here](points.json). It may be pretty-printed.
+values. An example points.json file is included in this repo [here](points.json). It may be pretty-printed or not.

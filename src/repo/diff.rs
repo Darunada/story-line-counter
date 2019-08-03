@@ -145,7 +145,7 @@ impl fmt::Display for DiffTotalCollection {
 
 impl Pointable for DiffTotalCollection {
     fn add_points(&mut self, points_collection: &StoryPointCollection) -> &mut Self {
-        for (story_number, total) in &mut self.totals {
+        for (_, total) in &mut self.totals {
             total.add_points(points_collection);
         }
 

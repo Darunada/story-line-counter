@@ -3,20 +3,30 @@
 ## Rust configuration
 edition = "2018"
 target = ["bin"]
-publish = false # never publish this utility
+publish = true
 
 ## Project Definition
 name = "story-line-counter"
+description = "This utility analyzes a git repo's commit messages for Version1 or Jira story numbers and gets the total number of changed lines associated with a story."
 version = "1.0.0"
 
 ## Project Metadata
 keywords = ["git", "version1", "jira"]
 categories = ["command-line-utilities"]
+homepage = "https://darunada.github.io/story-line-counter"
 authors = ["Lea Fairbanks <lea.rae.fairbanks@gmail.com>"]
+license = "MIT OR GPL-3.0-or-later"
 
 ## Repository information
-repository = "https://github.com/darunada/story-line-counter"
+repository = "https://github.com/darunada/story-line-counter.git"
 readme = "README.md"
+
+## Exclude files from published packages
+exclude = [
+    "points.json",
+    "_config.yaml",
+    "story-line-counter.iml"
+]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
