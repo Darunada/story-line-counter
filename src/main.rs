@@ -9,6 +9,7 @@ use crate::repo::diff::{
     DiffCollection, DiffResult, DiffTotalCollection, Pointable, StoryPointCollection,
 };
 use clap::{App, Arg, SubCommand};
+use std::borrow::Borrow;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
