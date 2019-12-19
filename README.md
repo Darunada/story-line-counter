@@ -29,7 +29,7 @@ Usage
 ```
 $ story-line-counter --help
 
-story-line-counter 1.0.0
+story-line-counter 1.0.1
 Lea Fairbanks <lea.rae.fairbanks@gmail.com>
 
 USAGE:
@@ -67,4 +67,3 @@ values. An example points.json file is included in this repo [here](points.json)
 Contributing
 --------------------------------------
 Pull requests are welcome!
- 

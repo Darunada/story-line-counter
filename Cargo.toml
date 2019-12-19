@@ -8,7 +8,7 @@ publish = true
 ## Project Definition
 name = "story-line-counter"
 description = "This utility analyzes a git repo's commit messages for Version1 or Jira story numbers and gets the total number of changed lines associated with a story."
-version = "1.0.0"
+version = "1.0.1"
 
 ## Project Metadata
 keywords = ["git", "version1", "jira"]
