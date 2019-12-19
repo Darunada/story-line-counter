@@ -72,11 +72,13 @@ fn collect_diffs(start: &RepoPosition, matcher: &str) -> Result<DiffCollection, 
     } = start;
 
     let mut first_rev_collection = repository.revwalk()?;
-    first_rev_collection.set_sorting(Sort::NONE);
+    first_rev_collection.set_sorting(Sort::TOPOLOGICAL);
+    first_rev_collection.simplify_first_parent();
     first_rev_collection.push(commit.id())?;
 
     let mut second_rev_collection = repository.revwalk()?;
-    second_rev_collection.set_sorting(Sort::NONE);
+    second_rev_collection.set_sorting(Sort::TOPOLOGICAL);
+    second_rev_collection.simplify_first_parent();
     second_rev_collection.push(commit.id())?;
 
     let mut first_commit_iterator = first_rev_collection.into_iter();
