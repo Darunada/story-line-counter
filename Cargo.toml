@@ -14,7 +14,7 @@ version = "1.0.1"
 keywords = ["git", "version1", "jira"]
 categories = ["command-line-utilities"]
 homepage = "https://darunada.github.io/story-line-counter"
-authors = ["Lea Fairbanks <lea.rae.fairbanks@gmail.com>"]
+authors = ["LeafBot"]
 license = "MIT OR GPL-3.0-or-later"
 
 ## Repository information
